@@ -32,6 +32,21 @@ npm test
 npm run build
 ```
 
+## CI/CD workflow
+
+Contributions flow through `integration` before production:
+
+```text
+feature branch -> PR to integration -> CI -> integration -> PR to main -> production
+```
+
+- Pull requests into `integration` run tests and a production build.
+- Pull requests into `main` pass policy only when their source is `integration`.
+- Merging `integration` into `main` deploys production through the connected Vercel project.
+- Build bundles are retained as GitHub Actions artifacts for seven days.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the complete contribution and release process.
+
 ## Status
 
 This is a research simulator and protocol-design workbench, not a production blockchain implementation or a cryptographic proof system.
