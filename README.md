@@ -2,6 +2,10 @@
 
 An interactive React proof of concept for exploring Proof of Useful Stake protocol designs. The lab lets researchers swap assignment, audit, consensus, reward, and dispute-resolution strategies and test them across adversarial networks of up to 5,000 simulated nodes.
 
+## Live demo
+
+[Open P.O.U.S. on Vercel](https://proof-of-useful-stake.vercel.app/)
+
 ## Features
 
 - Modular strategy stack
