@@ -17,7 +17,7 @@
     "@vitejs/plugin-react": "4.3.4",
     "react": "19.1.1",
     "react-dom": "19.1.1",
-    "vite": "6.4.3"
+    "vite": "8.2.2"
   },
   "overrides": {
     "rollup": "npm:@rollup/wasm-node@4.34.8"
