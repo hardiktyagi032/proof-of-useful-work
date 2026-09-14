@@ -90,6 +90,30 @@ body { background:#000; }
 .donut>div,.stat { background:#080808; }
 .reward-legend .training { background:#fff; }
 .reward-legend .auditing { background:#aaa; }
-.reward-legend .proposer { background:#555; }
-.range-control input { accent-color:#fff; }
 select { color-scheme:dark; }
+
+/* Crypto PoUS Lab styles */
+.crypto-layout { display:flex; flex-direction:column; gap:20px; }
+.crypto-grid { display:grid; grid-template-columns:1.2fr 1fr; gap:16px; }
+.crypto-table { width:100%; border-collapse:collapse; font-size:11px; margin-top:10px; }
+.crypto-table th, .crypto-table td { padding:8px 10px; border-bottom:1px solid var(--line); text-align:left; }
+.crypto-table th { font:500 9px DM Mono; color:var(--muted); text-transform:uppercase; letter-spacing:0.8px; }
+.crypto-table tr:hover { background:#121212; }
+.crypto-table td.mono { font-family:DM Mono, monospace; }
+.badge-adv { font:500 8px DM Mono; padding:2px 5px; background:#331111; color:#ff8888; border:1px solid #662222; border-radius:2px; }
+.badge-honest { font:500 8px DM Mono; padding:2px 5px; background:#112211; color:#88ff88; border:1px solid #225522; border-radius:2px; }
+.crypto-actions { display:flex; gap:10px; flex-wrap:wrap; margin:14px 0; }
+.tx-form { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:12px; padding:12px; background:#0d0d0d; border:1px solid var(--line); }
+.tx-form select, .tx-form input { background:#151515; border:1px solid #333; color:#fff; padding:6px 10px; font-size:11px; }
+.tx-form input[type="number"] { width:80px; }
+.block-list { display:flex; flex-direction:column; gap:10px; max-height:420px; overflow-y:auto; padding-right:6px; margin-top:10px; }
+.block-card { background:#0d0d0d; border:1px solid var(--line); padding:12px 14px; border-radius:2px; }
+.block-card-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
+.block-card-header strong { font-size:13px; }
+.block-details { font-size:10px; color:var(--muted); display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:6px; }
+.event-log-container { max-height:300px; overflow-y:auto; background:#070707; border:1px solid var(--line); padding:10px; font:400 10px DM Mono; display:flex; flex-direction:column; gap:6px; margin-top:10px; }
+.event-log-item { display:flex; gap:8px; border-bottom:1px solid #181818; padding-bottom:4px; }
+.event-log-time { color:#666; }
+.event-log-type { color:#fff; font-weight:600; min-width:90px; }
+.event-log-msg { color:#aaa; word-break:break-all; }
+

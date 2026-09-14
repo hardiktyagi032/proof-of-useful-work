@@ -8,6 +8,7 @@ import {
   scenarios,
   strategyOptions,
 } from './simulation.js'
+import { CryptoPoUSNetwork } from './cryptoSimulation.js'
 
 const tabs = [
   ['overview', 'Overview'],
@@ -17,6 +18,7 @@ const tabs = [
   ['disputes', 'Disputes'],
   ['rewards', 'Rewards'],
   ['validation', 'Validation lab'],
+  ['crypto', 'Crypto PoUS Lab'],
 ]
 
 const Icon = ({ name, size = 18 }) => {
@@ -177,6 +179,215 @@ function ValidationTab({ config, setConfig, result, run, history }) {
     <article className="panel history-panel"><h2>Recent deterministic runs</h2>{history.length ? history.map((item,index)=><div className="history-row" key={item.timestamp}><span>#{history.length-index}</span><b>{item.config.nodeCount} nodes</b><em>{formatPercent(item.metrics.detectionRate)}</em><small>{item.config.audit}</small></div>) : <div className="empty-state small"><Icon name="flask"/><span>Run a scenario to build comparison history.</span></div>}</article></section></div>
 }
 
+function createDefaultCryptoNetwork() {
+  const net = new CryptoPoUSNetwork({
+    stakeWeightAlpha: 0.6,
+    workWeightBeta: 0.4,
+    blockReward: 50,
+    slashPenaltyRatio: 0.2,
+  })
+  net.registerNode('Validator_Alpha', 2000, 600, false)
+  net.registerNode('Validator_Beta', 1500, 400, false)
+  net.registerNode('Miner_Gamma', 800, 150, false)
+  net.registerNode('Miner_Delta', 600, 100, false)
+  net.registerNode('Adversary_Malory', 1000, 350, true)
+  return net
+}
+
+function CryptoTab() {
+  const [cryptoNet, setCryptoNet] = useState(() => createDefaultCryptoNetwork())
+  const [snap, setSnap] = useState(() => cryptoNet.getSnapshot())
+  const [txFrom, setTxFrom] = useState('Validator_Alpha')
+  const [txTo, setTxTo] = useState('Miner_Gamma')
+  const [txAmount, setTxAmount] = useState(25)
+  const [statusMsg, setStatusMsg] = useState('')
+
+  const refresh = () => setSnap(cryptoNet.getSnapshot())
+
+  const handleMine = () => {
+    const res = cryptoNet.mineNextBlock()
+    if (!res) {
+      setStatusMsg('Mining failed: No eligible nodes with stake')
+    } else if (res.success) {
+      setStatusMsg(`Success: Block #${res.block.index} minted by ${res.block.proposer}! Useful proof verified.`)
+    } else {
+      setStatusMsg(`Security Alert: Node ${res.slashed} submitted invalid PoUW proof and was slashed ${res.penalty.toFixed(1)} tokens!`)
+    }
+    refresh()
+  }
+
+  const handleSimulateRounds = (count = 5) => {
+    let minted = 0
+    let slashed = 0
+    for (let i = 0; i < count; i++) {
+      const res = cryptoNet.mineNextBlock()
+      if (res?.success) minted++
+      else if (res?.slashed) slashed++
+    }
+    setStatusMsg(`Simulated ${count} rounds: ${minted} blocks minted, ${slashed} invalid proposals caught and slashed.`)
+    refresh()
+  }
+
+  const handleSendTx = (e) => {
+    e.preventDefault()
+    try {
+      cryptoNet.addTransaction(txFrom, txTo, Number(txAmount), 1)
+      setStatusMsg(`Tx queued in mempool: ${txFrom} -> ${txTo} (${txAmount} tokens)`)
+      refresh()
+    } catch (err) {
+      setStatusMsg(`Tx Error: ${err.message}`)
+    }
+  }
+
+  const handleReset = () => {
+    const nextNet = createDefaultCryptoNetwork()
+    setCryptoNet(nextNet)
+    setSnap(nextNet.getSnapshot())
+    setStatusMsg('Cryptocurrency network reset to genesis.')
+  }
+
+  return (
+    <div className="tab-content crypto-layout">
+      <SectionIntro
+        eyebrow="CRYPTOCURRENCY TESTBED"
+        title="Live Proof of Useful Stake (PoUS) Simulation"
+        text="Block production probability is proportional to (Stake)^0.6 × (Useful_Work_Credits + 1)^0.4. Proposers must compute verifiable useful matrix optimization solutions; fraud is cryptographically caught and slashed."
+      />
+
+      <section className="metrics-grid">
+        <MetricCard label="Block Height" value={`#${snap.blockHeight}`} detail="Current chain length" tone="mint" />
+        <MetricCard label="Active Nodes" value={`${snap.nodes.length}`} detail="Validators and Miners" tone="blue" />
+        <MetricCard label="Mempool Tx" value={`${snap.pendingTxs.length}`} detail="Pending in queue" tone="amber" />
+        <MetricCard label="Next Task" value={`Task #${snap.currentTaskId}`} detail={`Target MSE < ${snap.targetLoss}`} tone="violet" />
+      </section>
+
+      {statusMsg && (
+        <div className="callout" style={{ borderLeft: '3px solid var(--mint)' }}>
+          <Icon name="info" />
+          <span>{statusMsg}</span>
+        </div>
+      )}
+
+      <div className="crypto-actions">
+        <button className="primary" onClick={handleMine}>
+          <Icon name="play" /> Mint Next Block (PoUS)
+        </button>
+        <button className="secondary" onClick={() => handleSimulateRounds(5)}>
+          Fast-Forward 5 Epochs
+        </button>
+        <button className="secondary" onClick={() => handleSimulateRounds(20)}>
+          Simulate 20 Epochs
+        </button>
+        <button className="secondary" onClick={handleReset}>
+          <Icon name="refresh" /> Reset to Genesis
+        </button>
+      </div>
+
+      <div className="crypto-grid">
+        <article className="panel">
+          <div className="panel-head">
+            <div>
+              <h2>Validator & Miner Accounts</h2>
+              <p>Staked balances and useful computational score determine proposal weight.</p>
+            </div>
+          </div>
+
+          <table className="crypto-table">
+            <thead>
+              <tr>
+                <th>Node ID</th>
+                <th>Type</th>
+                <th>Stake</th>
+                <th>Balance</th>
+                <th>Useful Credits</th>
+                <th>Weight</th>
+                <th>Blocks</th>
+              </tr>
+            </thead>
+            <tbody>
+              {snap.nodes.map((node) => (
+                <tr key={node.id}>
+                  <td className="mono"><strong>{node.id}</strong></td>
+                  <td>
+                    {node.isAdversarial ? (
+                      <span className="badge-adv">Adversary</span>
+                    ) : (
+                      <span className="badge-honest">Honest</span>
+                    )}
+                  </td>
+                  <td className="mono">{node.stake.toFixed(1)}</td>
+                  <td className="mono">{node.balance.toFixed(1)}</td>
+                  <td className="mono">+{node.usefulCredits}</td>
+                  <td className="mono"><strong>{node.weight}</strong></td>
+                  <td className="mono">{node.totalBlocksProposed}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          <form className="tx-form" onSubmit={handleSendTx}>
+            <span className="eyebrow" style={{ width: '100%' }}>Create Transaction</span>
+            <label>From:
+              <select value={txFrom} onChange={(e) => setTxFrom(e.target.value)}>
+                {snap.nodes.map((n) => <option key={n.id} value={n.id}>{n.id}</option>)}
+              </select>
+            </label>
+            <label>To:
+              <select value={txTo} onChange={(e) => setTxTo(e.target.value)}>
+                {snap.nodes.map((n) => <option key={n.id} value={n.id}>{n.id}</option>)}
+              </select>
+            </label>
+            <label>Amount:
+              <input type="number" min="1" max="500" value={txAmount} onChange={(e) => setTxAmount(e.target.value)} />
+            </label>
+            <button type="submit" className="primary" style={{ padding: '6px 12px' }}>Send Tx</button>
+          </form>
+        </article>
+
+        <article className="panel">
+          <div className="panel-head">
+            <div>
+              <h2>Recent Blocks & Verifiable PoUW</h2>
+              <p>Each block includes a verified computational problem payload.</p>
+            </div>
+          </div>
+
+          <div className="block-list">
+            {snap.blocks.map((block) => (
+              <div className="block-card" key={block.index}>
+                <div className="block-card-header">
+                  <strong>Block #{block.index}</strong>
+                  <span className="live-pill">Proposer: {block.proposer}</span>
+                </div>
+                <div className="block-details">
+                  <div>Hash: <code>{block.hash.slice(0, 16)}...</code></div>
+                  <div>Txs: {block.transactions.length} included</div>
+                  <div>Useful Task: #{block.usefulProof.taskId}</div>
+                  <div>MSE Loss: {block.usefulProof.loss} (Verified)</div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ marginTop: '16px' }}>
+            <h2>Consensus & Slashing Events</h2>
+            <div className="event-log-container">
+              {snap.eventLog.slice(0, 12).map((item) => (
+                <div className="event-log-item" key={item.id}>
+                  <span className="event-log-time">[{new Date(item.timestamp).toLocaleTimeString()}]</span>
+                  <span className="event-log-type">{item.type}</span>
+                  <span className="event-log-msg">{item.message}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </article>
+      </div>
+    </div>
+  )
+}
+
+
 function SectionIntro({ eyebrow, title, text }) { return <header className="section-intro"><span className="eyebrow">{eyebrow}</span><h1>{title}</h1><p>{text}</p></header> }
 function Stat({ label, value }) { return <div className="stat"><span>{label}</span><strong>{value}</strong></div> }
 function Range({ label, value, max, step, display, onChange }) { return <label className="range-control"><span>{label}<b>{display}</b></span><input type="range" min="0" max={max} step={step} value={value} onChange={(e)=>onChange(Number(e.target.value))}/></label> }
@@ -219,7 +430,7 @@ export default function App() {
           <div className="run-summary"><span>{selectedStrategies[1]}</span><span>{formatCompact(config.nodeCount)} nodes</span><button onClick={run}><Icon name="refresh"/> Re-run epoch</button></div>
         </header>
         <div className="workspace">
-          {tab==='overview' && <Overview result={result} setTab={setTab}/>} {tab==='network' && <NetworkTab result={result}/>} {tab==='assignments' && <AssignmentsTab result={result} config={config}/>} {tab==='audits' && <AuditsTab result={result} config={config}/>} {tab==='disputes' && <DisputesTab result={result} config={config}/>} {tab==='rewards' && <RewardsTab result={result} config={config}/>} {tab==='validation' && <ValidationTab config={config} setConfig={setConfig} result={result} run={run} history={history}/>} 
+          {tab==='overview' && <Overview result={result} setTab={setTab}/>} {tab==='network' && <NetworkTab result={result}/>} {tab==='assignments' && <AssignmentsTab result={result} config={config}/>} {tab==='audits' && <AuditsTab result={result} config={config}/>} {tab==='disputes' && <DisputesTab result={result} config={config}/>} {tab==='rewards' && <RewardsTab result={result} config={config}/>} {tab==='validation' && <ValidationTab config={config} setConfig={setConfig} result={result} run={run} history={history}/>} {tab==='crypto' && <CryptoTab />}
         </div>
       </main>
       <aside className="control-rail">
